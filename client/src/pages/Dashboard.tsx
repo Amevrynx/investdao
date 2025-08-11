@@ -1,36 +1,17 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Wallet, 
-  TrendingUp, 
-  FileText, 
-  Vote, 
-  Plus,
-  ArrowRight,
-  Coins,
-  Users,
-  Target
-} from 'lucide-react';
+import { Wallet, TrendingUp, FileText, Vote, Plus,ArrowRight,Coins,Users,Target } from 'lucide-react';
 import { useWallet } from '../contexts/WalletContext';
 import { useDAO } from '../hooks/useDAO';
 import { formatAPT } from '../config/aptos';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StatusBadge from '../components/StatusBadge';
+import ProposalStatus from '../components/StatusBadge';
 
 const Dashboard: React.FC = () => {
   const { wallet } = useWallet();
   const navigate = useNavigate();
-  const { 
-    treasuryInfo, 
-    memberTokens, 
-    proposals, 
-    daoStats,
-    joinDAO,
-    isJoining,
-    treasuryLoading,
-    tokensLoading,
-    proposalsLoading
-  } = useDAO();
+  const {  treasuryInfo,  memberTokens,  proposals,  daoStats, joinDAO, isJoining, treasuryLoading, tokensLoading, proposalsLoading } = useDAO();
 
   // Redirect if not connected
   useEffect(() => {
@@ -250,13 +231,13 @@ const Dashboard: React.FC = () => {
                           <div className="flex items-center space-x-3">
                             <span className="text-sm font-medium text-grey-500">
                               #{proposal.id}
-                            </span>
                             <StatusBadge 
                               status={
                                 proposal.status === 0 ? 'Open' :
                                 proposal.status === 1 ? 'Funded' : 'Rejected'
-                              } 
+                              }
                             />
+                            </span>
                           </div>
                           <span className="text-sm font-medium text-grey-900">
                             {formatAPT(proposal.requestedAmount)} APT
