@@ -1,4 +1,4 @@
-# InvestmentDAO 🚀
+# InvestDAO 🚀
 
 > A decentralized autonomous organization (DAO) for community-driven investment decisions built on the Aptos blockchain
 
@@ -76,8 +76,8 @@ Our vision is to create a transparent, inclusive, and efficient investment ecosy
 
 ### **Smart Contract Structure**
 ```
-InvestmentDAO/
-├── InvestmentDAO.move     # Core DAO functionality
+contract/
+├── InvestDAO.move     # Core DAO functionality
 └── tests/                       # Comprehensive test suite
 ```
 
@@ -100,8 +100,8 @@ InvestmentDAO/
 
 1. **Clone the Repository**
 ```bash
-git clone https://github.com/nagasainanduri/investment-dao.git
-cd investment-dao
+git clone https://github.com/nagasainanduri/investdao.git
+cd investdao
 ```
 
 2. **Initialize Aptos Account**
