@@ -6,12 +6,13 @@ import { useDAO } from '../hooks/useDAO';
 import { formatAPT } from '../config/aptos';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StatusBadge from '../components/StatusBadge';
+import { CONTRACT_ADDRESS } from '../config/aptos';
 import ProposalStatus from '../components/StatusBadge';
 
 const Dashboard: React.FC = () => {
   const { wallet } = useWallet();
   const navigate = useNavigate();
-  const {  treasuryInfo,  memberTokens,  proposals,  daoStats, joinDAO, isJoining, treasuryLoading, tokensLoading, proposalsLoading } = useDAO();
+  const {  treasuryInfo,  memberTokens,  proposals,  daoStats, joinDAO, isJoining, treasuryLoading, tokensLoading, proposalsLoading } = useDAO(CONTRACT_ADDRESS);
 
   // Redirect if not connected
   useEffect(() => {

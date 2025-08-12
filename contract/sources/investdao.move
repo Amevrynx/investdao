@@ -560,6 +560,13 @@ module dao_addr::InvestDAO{
         base_power + reputation_bonus
     }
 
+    #[view]
+    public fun get_recipient_details( dao_treasury_address: address, proposal_id: u64): (address, u64) acquires DAOTreasury {
+        let treasury = borrow_global<DAOTreasury>(dao_treasury_address);
+        let proposal = table::borrow(&treasury.proposals, proposal_id);
+        (proposal.recipient, proposal.requested_amount)
+    }
+    
     #[view] 
     public fun calculate_quorum(dao_treasury_address: address): u64 acquires DAOTreasury {
         let treasury = borrow_global<DAOTreasury>(dao_treasury_address);

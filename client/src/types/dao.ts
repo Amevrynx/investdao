@@ -92,9 +92,10 @@ export interface VoteCastEvent {
   timestamp: number;
 }
 
+// FIXED: Use ProposalStatus enum for result, restrict to relevant statuses
 export interface ProposalExecutedEvent {
   proposalId: number;
-  result: 0 | 1 | 2; // 0=Funded, 1=Rejected, 2=QuorumNotMet
+  result: ProposalStatus.FUNDED | ProposalStatus.REJECTED | ProposalStatus.QUORUM_NOT_MET;
   amountTransferred: number;
   timestamp: number;
 }

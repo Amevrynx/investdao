@@ -1,33 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  FileText, 
-  Users, 
-  AlertCircle,
-  CheckCircle,
-  Wallet
-} from 'lucide-react';
+import { ArrowLeft, FileText, Users, AlertCircle, CheckCircle, Wallet, Tag } from 'lucide-react';
 import { useDAO } from '../hooks/useDAO';
 import { useWallet } from '../contexts/WalletContext';
-import { formatAPT, toOctas } from '../config/aptos';
+import { formatAPT, toOctas, CONTRACT_ADDRESS } from '../config/aptos';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { ProposalCategory } from '../types/dao';
+
+// Helper to display category as string
+const getCategoryString = (category: ProposalCategory) => {
+  switch (category) {
+    case ProposalCategory.FUNDING:
+      return 'Funding';
+    case ProposalCategory.GOVERNANCE:
+      return 'Governance';
+    case ProposalCategory.EMERGENCY:
+      return 'Emergency';
+    default:
+      return 'Funding';
+  }
+};
 
 const CreateProposal: React.FC = () => {
   const navigate = useNavigate();
   const { wallet } = useWallet();
-  const { 
-    treasuryInfo, 
-    memberTokens,
-    createProposal, 
-    isCreatingProposal 
-  } = useDAO();
-  
+  const { treasuryInfo, memberTokens, createProposal, isCreatingProposal } = useDAO(CONTRACT_ADDRESS);
+
   const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category: ProposalCategory.FUNDING,
     recipient: '',
     amount: '',
-    description: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
@@ -42,6 +47,13 @@ const CreateProposal: React.FC = () => {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+
+    // Validate title
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    } else if (formData.title.length < 5) {
+      newErrors.title = 'Title must be at least 5 characters';
+    }
 
     // Validate recipient address
     if (!formData.recipient.trim()) {
@@ -73,11 +85,11 @@ const CreateProposal: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
     if (!validateForm()) return;
-    
+
     if (!memberTokens || memberTokens.balance === 0) {
       toast.error('You must be a DAO member to create proposals');
       return;
@@ -85,10 +97,13 @@ const CreateProposal: React.FC = () => {
 
     if (showPreview) {
       // Submit the proposal
-      const amountInOctas = toOctas(parseFloat(formData.amount));
+      const amountInOctas = toOctas(Number(formData.amount));
       createProposal({
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
         recipient: formData.recipient,
-        amount: amountInOctas
+        requestedAmount: amountInOctas,
       });
     } else {
       // Show preview
@@ -96,7 +111,7 @@ const CreateProposal: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -105,7 +120,7 @@ const CreateProposal: React.FC = () => {
   };
 
   const resetForm = () => {
-    setFormData({ recipient: '', amount: '', description: '' });
+    setFormData({ title: '', description: '', category: ProposalCategory.FUNDING, recipient: '', amount: '' });
     setErrors({});
     setShowPreview(false);
   };
@@ -182,7 +197,56 @@ const CreateProposal: React.FC = () => {
           {!showPreview ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               <h3 className="text-xl font-semibold text-grey-900 mb-6">Proposal Details</h3>
-              
+
+              {/* Proposal Title */}
+              <div>
+                <label className="block text-sm font-medium text-grey-700 mb-2">
+                  Proposal Title *
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-grey-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    placeholder="e.g. Invest in Project X"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-grey-500 focus:border-grey-500 outline-none transition-colors duration-200 ${
+                      errors.title ? 'border-red-300' : 'border-grey-300'
+                    }`}
+                    disabled={isCreatingProposal}
+                  />
+                </div>
+                {errors.title && (
+                  <p className="text-red-600 text-sm mt-1">{errors.title}</p>
+                )}
+                <p className="text-grey-500 text-sm mt-1">
+                  Give your proposal a clear and concise title
+                </p>
+              </div>
+
+              {/* Proposal Category */}
+              <div>
+                <label className="block text-sm font-medium text-grey-700 mb-2">
+                  Proposal Category *
+                </label>
+                <div className="relative">
+                  <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-grey-400 w-5 h-5" />
+                  <select
+                    value={formData.category}
+                    onChange={(e) => handleInputChange('category', Number(e.target.value))}
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-grey-500 focus:border-grey-500 outline-none transition-colors duration-200 border-grey-300"
+                    disabled={isCreatingProposal}
+                  >
+                    <option value={ProposalCategory.FUNDING}>Funding</option>
+                    <option value={ProposalCategory.GOVERNANCE}>Governance</option>
+                    <option value={ProposalCategory.EMERGENCY}>Emergency</option>
+                  </select>
+                </div>
+                <p className="text-grey-500 text-sm mt-1">
+                  Select the category that best fits your proposal
+                </p>
+              </div>
+
               {/* Recipient Address */}
               <div>
                 <label className="block text-sm font-medium text-grey-700 mb-2">
@@ -249,6 +313,7 @@ const CreateProposal: React.FC = () => {
                     errors.description ? 'border-red-300' : 'border-grey-300'
                   }`}
                   disabled={isCreatingProposal}
+                  maxLength={500}
                 />
                 {errors.description && (
                   <p className="text-red-600 text-sm mt-1">{errors.description}</p>
@@ -293,6 +358,16 @@ const CreateProposal: React.FC = () => {
               </div>
 
               <div className="bg-grey-50 rounded-lg p-6 space-y-4">
+                <div>
+                  <h4 className="font-medium text-grey-900 mb-2">Title</h4>
+                  <p className="text-grey-800 text-lg">{formData.title}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-grey-900 mb-2">Category</h4>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-grey-200 text-grey-800 text-sm font-medium">
+                    {getCategoryString(formData.category)}
+                  </span>
+                </div>
                 <div>
                   <h4 className="font-medium text-grey-900 mb-2">Recipient</h4>
                   <p className="text-grey-600 font-mono text-sm break-all">{formData.recipient}</p>

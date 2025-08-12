@@ -1,8 +1,10 @@
+'use client';
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { WalletInfo } from '../types/dao';
 import toast from 'react-hot-toast';
 
-// Supported wallet types
+// Supported wallets
 export enum WalletName {
   PETRA = 'Petra',
   MARTIAN = 'Martian',
@@ -11,7 +13,7 @@ export enum WalletName {
 }
 
 interface WalletContextType {
-  wallet: WalletInfo;
+  wallet: WalletInfo & { name?: WalletName };
   connectWallet: (walletName?: WalletName) => Promise<void>;
   disconnectWallet: () => void;
   signAndSubmitTransaction: (payload: any) => Promise<any>;
@@ -29,355 +31,233 @@ interface WalletProviderProps {
   defaultNetwork?: 'mainnet' | 'testnet' | 'devnet';
 }
 
-export const WalletProvider: React.FC<WalletProviderProps> = ({ 
-  children, 
-  defaultNetwork = 'devnet' 
+export const WalletProvider: React.FC<WalletProviderProps> = ({
+  children,
+  defaultNetwork = 'devnet',
 }) => {
-  const [wallet, setWallet] = useState<WalletInfo>({
+  const [wallet, setWallet] = useState<WalletInfo & { name?: WalletName }>({
     address: null,
     connected: false,
     connecting: false,
+    name: undefined,
   });
-  
   const [network, setNetwork] = useState<string>(defaultNetwork);
+  const [availableWallets, setAvailableWallets] = useState<WalletName[]>([]);
 
-  // Get wallet object by name
   const getWalletObject = (walletName: WalletName) => {
-    const windowAny = window as any;
-    
+    const win = window as any;
     switch (walletName) {
-      case WalletName.PETRA:
-        return windowAny.aptos;
-      case WalletName.MARTIAN:
-        return windowAny.martian;
-      case WalletName.PONTEM:
-        return windowAny.pontem;
-      case WalletName.FEWCHA:
-        return windowAny.fewcha;
-      default:
-        return windowAny.aptos;
+      case WalletName.PETRA: return win.aptos;
+      case WalletName.MARTIAN: return win.martian;
+      case WalletName.PONTEM: return win.pontem;
+      case WalletName.FEWCHA: return win.fewcha;
+      default: return win.aptos;
     }
   };
 
-  // Check if wallet is installed
-  const isWalletInstalled = (walletName: WalletName): boolean => {
-    const walletObj = getWalletObject(walletName);
-    return !!walletObj;
-  };
+  const isWalletInstalled = (walletName: WalletName) => !!getWalletObject(walletName);
 
-  // Get available wallets
-  const availableWallets: WalletName[] = Object.values(WalletName).filter(walletName => 
-    isWalletInstalled(walletName)
-  );
+  // Detect wallets once on mount
+  useEffect(() => {
+    setAvailableWallets(Object.values(WalletName).filter(isWalletInstalled));
+  }, []);
 
   const connectWallet = async (walletName: WalletName = WalletName.PETRA) => {
     setWallet(prev => ({ ...prev, connecting: true }));
-    
     try {
       const walletObj = getWalletObject(walletName);
-      
-      if (!walletObj) {
-        throw new Error(`${walletName} wallet not found. Please install the extension.`);
-      }
+      if (!walletObj) throw new Error(`${walletName} wallet not found. Please install it.`);
 
-      // Connect to wallet
       const response = await walletObj.connect();
-      
-      if (response.address) {
-        // Get network info if available
+      if (response?.address) {
         let currentNetwork = defaultNetwork;
         try {
-          const networkInfo = await walletObj.network();
-          currentNetwork = networkInfo?.name?.toLowerCase() || defaultNetwork;
-        } catch (e) {
-          console.log('Could not get network info, using default');
+          const info = await walletObj.network();
+          currentNetwork = info?.name?.toLowerCase() || defaultNetwork;
+        } catch {
+          console.log('Could not fetch network info, using default.');
         }
 
-        setWallet({
-          address: response.address,
-          connected: true,
-          connecting: false,
-        });
-        
+        setWallet({ address: response.address, connected: true, connecting: false, name: walletName });
         setNetwork(currentNetwork);
-        
-        toast.success(`Connected to ${walletName} wallet`);
+
         localStorage.setItem('walletConnected', 'true');
         localStorage.setItem('walletAddress', response.address);
         localStorage.setItem('walletName', walletName);
         localStorage.setItem('walletNetwork', currentNetwork);
+
+        toast.success(`Connected to ${walletName}`);
       }
     } catch (error: any) {
       console.error('Wallet connection failed:', error);
-      
-      // Handle specific error cases
-      if (error.code === 4001) {
-        toast.error('Connection rejected by user');
-      } else if (error.message?.includes('not found')) {
-        toast.error(`${walletName} wallet not installed`);
-      } else {
-        toast.error(`Failed to connect wallet: ${error.message || 'Unknown error'}`);
-      }
-      
+      toast.error(error?.message || 'Failed to connect wallet');
       setWallet(prev => ({ ...prev, connecting: false }));
     }
   };
 
   const disconnectWallet = async () => {
     try {
-      // Try to disconnect from the wallet if it supports it
-      const walletName = localStorage.getItem('walletName') as WalletName;
-      if (walletName) {
-        const walletObj = getWalletObject(walletName);
-        if (walletObj?.disconnect) {
-          await walletObj.disconnect();
-        }
+      const storedName = localStorage.getItem('walletName') as WalletName | null;
+      if (storedName) {
+        const walletObj = getWalletObject(storedName);
+        if (walletObj?.disconnect) await walletObj.disconnect();
       }
-    } catch (error) {
-      console.log('Wallet disconnect method not available');
+    } catch {
+      console.log('Wallet disconnect method unavailable');
     }
-
-    setWallet({
-      address: null,
-      connected: false,
-      connecting: false,
-    });
-    
+    setWallet({ address: null, connected: false, connecting: false, name: undefined });
     localStorage.removeItem('walletConnected');
     localStorage.removeItem('walletAddress');
     localStorage.removeItem('walletName');
     localStorage.removeItem('walletNetwork');
-    
     toast.success('Wallet disconnected');
   };
 
+  //used default wallet as petra
   const signAndSubmitTransaction = async (payload: any) => {
-    const walletName = localStorage.getItem('walletName') as WalletName;
-    const walletObj = getWalletObject(walletName || WalletName.PETRA);
-    
-    if (!walletObj || !wallet.connected) {
-      throw new Error('Wallet not connected');
-    }
+    const storedName = (wallet.name || (localStorage.getItem('walletName') as WalletName)) || WalletName.PETRA;
+    const walletObj = getWalletObject(storedName);
+    if (!walletObj || !wallet.connected) throw new Error('Wallet not connected');
 
     try {
-      // Add gas and expiration if not specified
-      const enhancedPayload = {
+      const enhanced = {
         max_gas_amount: "100000",
         gas_unit_price: "100",
-        expiration_timestamp_secs: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+        expiration_timestamp_secs: Math.floor(Date.now() / 1000) + 600,
         ...payload,
       };
-
-      const response = await walletObj.signAndSubmitTransaction(enhancedPayload);
-      
-      // Show success toast with transaction hash
-      if (response.hash) {
-        toast.success(`Transaction submitted: ${response.hash.substring(0, 8)}...`);
-      }
-      
-      return response;
+      const resp = await walletObj.signAndSubmitTransaction(enhanced);
+      if (resp?.hash) toast.success(`Transaction: ${resp.hash.slice(0, 8)}...`);
+      return resp;
     } catch (error: any) {
-      console.error('Transaction failed:', error);
-      
-      // Handle specific transaction errors
-      if (error.code === 4001) {
-        toast.error('Transaction rejected by user');
-      } else if (error.message?.includes('insufficient')) {
-        toast.error('Insufficient funds for transaction');
-      } else if (error.message?.includes('gas')) {
-        toast.error('Transaction failed due to gas issues');
-      } else {
-        toast.error(`Transaction failed: ${error.message || 'Unknown error'}`);
-      }
-      
+      console.error('Tx failed:', error);
+      toast.error(error?.message || 'Transaction failed');
       throw error;
     }
   };
 
-  const getBalance = async (): Promise<number> => {
-    if (!wallet.connected || !wallet.address) {
-      return 0;
-    }
-
+  const getBalance = async () => {
+    if (!wallet.connected || !wallet.address) return 0;
     try {
-      const walletName = localStorage.getItem('walletName') as WalletName;
-      const walletObj = getWalletObject(walletName || WalletName.PETRA);
-      
+      const storedName = (wallet.name || (localStorage.getItem('walletName') as WalletName)) || WalletName.PETRA;
+      const walletObj = getWalletObject(storedName);
       if (walletObj?.account) {
-        const accountInfo = await walletObj.account();
-        return parseInt(accountInfo.balance || '0');
+        const info = await walletObj.account();
+        return parseInt(info.balance || '0');
       }
-      
-      // Fallback: try to get balance via API
-      const response = await fetch(
+      // API fallback
+      const res = await fetch(
         `https://fullnode.${network}.aptoslabs.com/v1/accounts/${wallet.address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
       );
-      
-      if (response.ok) {
-        const data = await response.json();
+      if (res.ok) {
+        const data = await res.json();
         return parseInt(data.data.coin.value);
       }
-      
       return 0;
-    } catch (error) {
-      console.error('Failed to get balance:', error);
+    } catch (err) {
+      console.error('Balance fetch failed:', err);
       return 0;
     }
   };
 
-  const switchNetwork = async (targetNetwork: 'mainnet' | 'testnet' | 'devnet') => {
-    const walletName = localStorage.getItem('walletName') as WalletName;
-    const walletObj = getWalletObject(walletName || WalletName.PETRA);
-    
+  const switchNetwork = async (target: 'mainnet' | 'testnet' | 'devnet'): Promise<void> => {
+    const storedName = (wallet.name || (localStorage.getItem('walletName') as WalletName)) || WalletName.PETRA;
+    const walletObj = getWalletObject(storedName);
     if (!walletObj) {
       toast.error('No wallet connected');
       return;
     }
-
     try {
       if (walletObj.changeNetwork) {
-        await walletObj.changeNetwork(targetNetwork);
-        setNetwork(targetNetwork);
-        localStorage.setItem('walletNetwork', targetNetwork);
-        toast.success(`Switched to ${targetNetwork}`);
+        await walletObj.changeNetwork(target);
+        setNetwork(target);
+        localStorage.setItem('walletNetwork', target);
+        toast.success(`Switched to ${target}`);
       } else {
         toast.error('Wallet does not support network switching');
       }
-    } catch (error: any) {
-      console.error('Network switch failed:', error);
-      toast.error(`Failed to switch network: ${error.message || 'Unknown error'}`);
+    } catch (e: any) {
+      toast.error(`Network switch failed: ${e?.message || 'Unknown error'}`);
     }
   };
 
-  // Auto-connect on page load with better error handling
+  // Auto-connect
   useEffect(() => {
     const autoConnect = async () => {
       const wasConnected = localStorage.getItem('walletConnected');
       const savedAddress = localStorage.getItem('walletAddress');
-      const savedWalletName = localStorage.getItem('walletName') as WalletName;
+      const savedName = localStorage.getItem('walletName') as WalletName | null;
       const savedNetwork = localStorage.getItem('walletNetwork');
-      
-      if (wasConnected && savedAddress && savedWalletName) {
-        try {
-          const walletObj = getWalletObject(savedWalletName);
-          
-          if (walletObj) {
-            // Check if wallet is still connected
-            const isStillConnected = walletObj.isConnected ? 
-              await walletObj.isConnected() : 
-              true; // Assume connected if method doesn't exist
-            
-            if (isStillConnected) {
-              setWallet({
-                address: savedAddress,
-                connected: true,
-                connecting: false,
-              });
-              
-              if (savedNetwork) {
-                setNetwork(savedNetwork);
-              }
-              
-              console.log(`Auto-connected to ${savedWalletName}`);
-            } else {
-              // Clear stale connection
-              localStorage.removeItem('walletConnected');
-              localStorage.removeItem('walletAddress');
-              localStorage.removeItem('walletName');
-              localStorage.removeItem('walletNetwork');
-            }
+      if (wasConnected && savedAddress && savedName) {
+        const walletObj = getWalletObject(savedName);
+        if (walletObj) {
+          let stillConnected = true;
+          if (walletObj.isConnected) {
+            try { stillConnected = await walletObj.isConnected(); } catch { stillConnected = false; }
           }
-        } catch (error) {
-          console.error('Auto-connect failed:', error);
-          // Clear potentially corrupted data
-          localStorage.removeItem('walletConnected');
-          localStorage.removeItem('walletAddress');
-          localStorage.removeItem('walletName');
-          localStorage.removeItem('walletNetwork');
+          if (stillConnected) {
+            setWallet({ address: savedAddress, connected: true, connecting: false, name: savedName });
+            if (savedNetwork) setNetwork(savedNetwork);
+            console.log(`Auto-connected to ${savedName}`);
+          } else {
+            localStorage.clear();
+          }
         }
       }
     };
-
-    // Delay auto-connect to ensure wallet extensions are loaded
-    const timer = setTimeout(autoConnect, 500);
-    return () => clearTimeout(timer);
+    const t = setTimeout(autoConnect, 500);
+    return () => clearTimeout(t);
   }, []);
 
-  // Listen for wallet events
+  // Basic Petra events (others could be added similarly)
   useEffect(() => {
-    const handleAccountChange = (newAccount: any) => {
-      if (newAccount?.address !== wallet.address) {
-        setWallet(prev => ({
-          ...prev,
-          address: newAccount?.address || null,
-          connected: !!newAccount?.address,
-        }));
-        
-        if (newAccount?.address) {
-          localStorage.setItem('walletAddress', newAccount.address);
-          toast('Account changed');
-        } else {
-          disconnectWallet();
-        }
+    const w: any = window;
+    const handleAccountChange = (acc: any) => {
+      if (acc?.address) {
+        setWallet(prev => ({ ...prev, address: acc.address, connected: true }));
+        localStorage.setItem('walletAddress', acc.address);
+        toast('Account changed');
+      } else {
+        disconnectWallet();
       }
     };
-
-    const handleNetworkChange = (newNetwork: any) => {
-      const networkName = newNetwork?.name?.toLowerCase() || newNetwork;
-      if (networkName && networkName !== network) {
-        setNetwork(networkName);
-        localStorage.setItem('walletNetwork', networkName);
-        toast(`Network changed to ${networkName}`);
+    const handleNetworkChange = (net: any) => {
+      const netName = net?.name?.toLowerCase() || net;
+      if (netName && netName !== network) {
+        setNetwork(netName);
+        localStorage.setItem('walletNetwork', netName);
+        toast(`Network changed to ${netName}`);
       }
     };
-
-    const handleDisconnect = () => {
-      disconnectWallet();
-    };
-
-    // Add event listeners for supported wallets
-    const windowAny = window as any;
-    
-    if (windowAny.aptos?.onAccountChange) {
-      windowAny.aptos.onAccountChange(handleAccountChange);
-    }
-    if (windowAny.aptos?.onNetworkChange) {
-      windowAny.aptos.onNetworkChange(handleNetworkChange);
-    }
-    if (windowAny.aptos?.onDisconnect) {
-      windowAny.aptos.onDisconnect(handleDisconnect);
-    }
-
-    // Cleanup function
+    if (w.aptos?.onAccountChange) w.aptos.onAccountChange(handleAccountChange);
+    if (w.aptos?.onNetworkChange) w.aptos.onNetworkChange(handleNetworkChange);
+    if (w.aptos?.onDisconnect) w.aptos.onDisconnect(disconnectWallet);
     return () => {
-      // Remove listeners if wallet supports it
-      if (windowAny.aptos?.removeAllListeners) {
-        windowAny.aptos.removeAllListeners();
-      }
+      if (w.aptos?.removeAllListeners) w.aptos.removeAllListeners();
     };
-  }, [wallet.address, network]);
+  }, [network]);
 
   return (
-    <WalletContext.Provider value={{
-      wallet,
-      connectWallet,
-      disconnectWallet,
-      signAndSubmitTransaction,
-      getBalance,
-      network,
-      switchNetwork,
-      availableWallets,
-      isWalletInstalled,
-    }}>
+    <WalletContext.Provider
+      value={{
+        wallet,
+        connectWallet,
+        disconnectWallet,
+        signAndSubmitTransaction,
+        getBalance,
+        network,
+        switchNetwork,
+        availableWallets,
+        isWalletInstalled
+      }}
+    >
       {children}
     </WalletContext.Provider>
   );
 };
 
 export const useWallet = () => {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
-  }
-  return context;
+  const ctx = useContext(WalletContext);
+  if (!ctx) throw new Error('useWalletContext must be used within WalletProvider');
+  return ctx;
 };

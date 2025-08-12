@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Users, Vote, TrendingUp, Shield, Coins, FileText } from 'lucide-react';
 import { useWallet, WalletName } from '../contexts/WalletContext';
 import { useDAO } from '../hooks/useDAO';
-import { formatAPT } from '../config/aptos';
+import { formatAPT, CONTRACT_ADDRESS } from '../config/aptos';
 
 const Landing: React.FC = () => {
   const { wallet, connectWallet } = useWallet();
-  const { daoStats, treasuryInfo } = useDAO();
+  const { daoStats, treasuryInfo } = useDAO(CONTRACT_ADDRESS);
 
   const features = [
     {

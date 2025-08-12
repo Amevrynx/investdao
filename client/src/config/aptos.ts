@@ -1,11 +1,44 @@
-import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
+import { Aptos, AptosConfig, ClientConfig, Network } from "@aptos-labs/ts-sdk";
 
-// Replace this with your actual deployed contract address
-export const CONTRACT_ADDRESS = "0x8fe60c1ccd7eaa5c5e48556e99d02531fd7d528428ffedd523aafc2df8dd4abf";
-export const MODULE_NAME = "InvestDAO";
+export const CONTRACT_ADDRESS = (import.meta.env.VITE_CONTRACT_ADDRESS as string) || "";
+export const MODULE_NAME = (import.meta.env.VITE_MODULE_NAME as string) || "";
 
-const config = new AptosConfig({ network: Network.DEVNET });
-export const aptos = new Aptos(config);
+// Geomi API key and endpoint
+const GEOMI_API_KEY = import.meta.env.VITE_GEOMI_API_KEY as string;
+const GEOMI_DEVNET_URL = `https://fullnode.devnet.aptoslabs.com/v1`;
+
+const clientConfig: ClientConfig = {
+  API_KEY: GEOMI_API_KEY
+};
+
+export const NETWORK_CONFIG = {
+  devnet: {
+    name: 'Devnet',
+    url: GEOMI_DEVNET_URL,
+    faucetUrl: 'https://fullnode.devnet.aptoslabs.com/v1',
+    apiKey: GEOMI_API_KEY,
+  },
+  testnet: {
+    name: 'Testnet', 
+    url: 'https://fullnode.testnet.aptoslabs.com/v1',
+    faucetUrl: 'https://faucet.testnet.aptoslabs.com',
+    apiKey: null,
+  },
+  mainnet: {
+    name: 'Mainnet',
+    url: 'https://fullnode.mainnet.aptoslabs.com/v1',
+    faucetUrl: null,
+    apiKey: null,
+  },
+} as const;
+
+// Use Geomi for devnet, default for others
+const config = new AptosConfig({ 
+  network: Network.DEVNET, 
+  fullnode: NETWORK_CONFIG.devnet.url,
+  clientConfig
+});
+export const aptos = Object.freeze(new Aptos(config));
 
 // Utility functions for amount conversion
 export const formatAPT = (octas: number): string => (octas / 100000000).toFixed(4);
@@ -20,45 +53,26 @@ export const formatNumber = (num: number): string => {
 
 // Contract function names - matching your Move contract
 export const CONTRACT_FUNCTIONS = {
-  INITIALIZE_DAO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::initialize_dao`,
-  JOIN_DAO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::join_dao`,
-  DEPOSIT_FUNDS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::deposit_funds`,
-  STAKE_TOKENS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::stake_tokens`,
-  TRANSFER_TOKENS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::transfer_tokens`,
-  CREATE_PROPOSAL: `${CONTRACT_ADDRESS}::${MODULE_NAME}::create_investment_proposal`,
-  VOTE_PROPOSAL: `${CONTRACT_ADDRESS}::${MODULE_NAME}::vote_on_proposal`,
-  EXECUTE_PROPOSAL: `${CONTRACT_ADDRESS}::${MODULE_NAME}::execute_proposal`,
-  DISTRIBUTE_TOKENS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::distribute_tokens`,
-  EMERGENCY_PAUSE: `${CONTRACT_ADDRESS}::${MODULE_NAME}::emergency_pause`,
-  EMERGENCY_UNPAUSE: `${CONTRACT_ADDRESS}::${MODULE_NAME}::emergency_unpause`,
+  JOIN_DAO: `${CONTRACT_ADDRESS}::InvestDAO::join_dao`,
+  DEPOSIT_FUNDS: `${CONTRACT_ADDRESS}::InvestDAO::deposit_funds`,
+  STAKE_TOKENS: `${CONTRACT_ADDRESS}::InvestDAO::stake_tokens`,
+  TRANSFER_TOKENS: `${CONTRACT_ADDRESS}::InvestDAO::transfer_tokens`,
+  CREATE_PROPOSAL: `${CONTRACT_ADDRESS}::InvestDAO::create_investment_proposal`,
+  VOTE_PROPOSAL: `${CONTRACT_ADDRESS}::InvestDAO::vote_on_proposal`,
+  EXECUTE_PROPOSAL: `${CONTRACT_ADDRESS}::InvestDAO::execute_proposal`,
+  DISTRIBUTE_TOKENS: `${CONTRACT_ADDRESS}::InvestDAO::distribute_tokens`,
+  EMERGENCY_PAUSE: `${CONTRACT_ADDRESS}::InvestDAO::emergency_pause`,
+  EMERGENCY_UNPAUSE: `${CONTRACT_ADDRESS}::InvestDAO::emergency_unpause`,
 } as const;
 
 // Contract view function names - matching your Move contract
 export const CONTRACT_VIEWS = {
-  GET_PROPOSAL_INFO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_proposal_info`,
-  GET_MEMBER_INFO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_member_info`,
-  GET_TREASURY_INFO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_treasury_info`,
-  GET_VOTING_POWER: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_voting_power`,
-  CALCULATE_QUORUM: `${CONTRACT_ADDRESS}::${MODULE_NAME}::calculate_quorum`,
-} as const;
-
-// Network configuration
-export const NETWORK_CONFIG = {
-  devnet: {
-    name: 'Devnet',
-    url: 'https://fullnode.devnet.aptoslabs.com/v1',
-    faucetUrl: 'https://faucet.devnet.aptoslabs.com',
-  },
-  testnet: {
-    name: 'Testnet', 
-    url: 'https://fullnode.testnet.aptoslabs.com/v1',
-    faucetUrl: 'https://faucet.testnet.aptoslabs.com',
-  },
-  mainnet: {
-    name: 'Mainnet',
-    url: 'https://fullnode.mainnet.aptoslabs.com/v1',
-    faucetUrl: null,
-  },
+  GET_PROPOSAL_INFO: `${CONTRACT_ADDRESS}::InvestDAO::get_proposal_info`,
+  GET_MEMBER_INFO: `${CONTRACT_ADDRESS}::InvestDAO::get_member_info`,
+  GET_TREASURY_INFO: `${CONTRACT_ADDRESS}::InvestDAO::get_treasury_info`,
+  GET_VOTING_POWER: `${CONTRACT_ADDRESS}::InvestDAO::get_voting_power`,
+  CALCULATE_QUORUM: `${CONTRACT_ADDRESS}::InvestDAO::calculate_quorum`,
+  GET_RECIPIENT_DETAILS: `${CONTRACT_ADDRESS}::InvestDAO::get_recipient_details`,
 } as const;
 
 // Helper function to get account resources

@@ -1,42 +1,56 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  ThumbsUp, 
-  ThumbsDown, 
-  Users, 
-  Calendar,
-  TrendingUp,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Target,
-  ExternalLink
-} from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Users, Calendar, TrendingUp, CheckCircle, XCircle, Clock, Target, ExternalLink } from 'lucide-react';
 import { useDAO } from '../hooks/useDAO';
 import { useWallet } from '../contexts/WalletContext';
-import { formatAPT } from '../config/aptos';
+import { formatAPT, CONTRACT_ADDRESS } from '../config/aptos';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StatusBadge from '../components/StatusBadge';
-import { ProposalStatus } from '../types/dao';
+import { ProposalStatusString, ProposalStatus } from '../types/dao';
 import toast from 'react-hot-toast';
 
 const ProposalDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { wallet } = useWallet();
-  const { 
-    proposals, 
+  const {
+    proposals,
     memberTokens,
-    voteProposal, 
+    voteProposal,
     isVoting,
     executeProposal,
     isExecuting,
-    proposalsLoading 
-  } = useDAO();
+    proposalsLoading,
+    getRecipientDetails
+  } = useDAO(CONTRACT_ADDRESS);
 
   const proposalId = parseInt(id || '0');
   const proposal = proposals.find(p => p.id === proposalId);
+
+  // State for recipient details
+  const [recipient, setRecipient] = useState<string>('');
+  const [requestedAmount, setRequestedAmount] = useState<number>(0);
+  const [recipientLoading, setRecipientLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (proposal) {
+      setRecipientLoading(true);
+      getRecipientDetails(proposal.id).then((details) => {
+        if (isMounted) {
+          if (details) {
+            setRecipient(details.recipient);
+            setRequestedAmount(details.requestedAmount);
+          } else {
+            setRecipient('');
+            setRequestedAmount(0);
+          }
+          setRecipientLoading(false);
+        }
+      });
+    }
+    return () => { isMounted = false; };
+  }, [proposal, getRecipientDetails]);
 
   const handleVote = (vote: boolean) => {
     if (!wallet.connected) {
@@ -91,14 +105,15 @@ const ProposalDetails: React.FC = () => {
     );
   }
 
-  const status: ProposalStatus = proposal.status === 0 ? 'Open' :
-                                proposal.status === 1 ? 'Funded' : 'Rejected';
+  const stats: ProposalStatusString = proposal.status === 0 ? 'Open' :  proposal.status === 1 ? 'Funded' : proposal.status === 2 ? 'Rejected' : proposal.status === 3 ? 'Executed' : 'Quorum Not Met';
+  const votingEndTime = new Date(proposal.votingEndTime * 1000);
+  const status : ProposalStatus = proposal.status === 0? 0 : proposal.status === 1 ? 1 : proposal.status === 2 ? 2 : proposal.status === 3 ? 3 : 4;
   const totalVotes = proposal.yesVotes + proposal.noVotes;
   const yesPercentage = totalVotes > 0 ? (proposal.yesVotes / totalVotes) * 100 : 0;
   const noPercentage = totalVotes > 0 ? (proposal.noVotes / totalVotes) * 100 : 0;
   const votingPower = memberTokens?.stakedBalance || 0;
-  const canVote = wallet.connected && votingPower > 0 && status === 'Open';
-  const canExecute = wallet.connected && status === 'Open' && proposal.yesVotes > proposal.noVotes; // Simplified admin check
+  const canVote = wallet.connected && votingPower > 0 && stats === 'Open';
+  const canExecute = wallet.connected && stats === 'Open' && proposal.yesVotes > proposal.noVotes; // Simplified admin check
 
   return (
     <div className="min-h-screen bg-grey-50">
@@ -123,7 +138,7 @@ const ProposalDetails: React.FC = () => {
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-grey-900 mb-1">
-                {formatAPT(proposal.requestedAmount)} APT
+                {recipientLoading ? <LoadingSpinner size="sm" /> : formatAPT(requestedAmount)} APT
               </div>
               <p className="text-grey-600">Funding Requested</p>
             </div>
@@ -134,11 +149,16 @@ const ProposalDetails: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-grey-600 mb-1">Recipient Address</p>
-                <p className="font-mono text-grey-900 break-all">{proposal.recipient}</p>
+                {recipientLoading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <p className="font-mono text-grey-900 break-all">{recipient}</p>
+                )}
               </div>
               <button
-                onClick={() => window.open(`https://explorer.aptoslabs.com/account/${proposal.recipient}?network=devnet`, '_blank')}
+                onClick={() => recipient && window.open(`https://explorer.aptoslabs.com/account/${recipient}?network=devnet`, '_blank')}
                 className="inline-flex items-center text-grey-600 hover:text-grey-900 transition-colors duration-200"
+                disabled={!recipient}
               >
                 <ExternalLink className="w-4 h-4" />
               </button>
@@ -149,17 +169,17 @@ const ProposalDetails: React.FC = () => {
           <div className="border-t border-grey-200 pt-6">
             <h3 className="text-lg font-semibold text-grey-900 mb-4">Proposal Status</h3>
             <div className="flex items-center space-x-4">
-              <div className={`flex items-center space-x-2 ${status !== 'Rejected' ? 'text-grey-900' : 'text-grey-400'}`}>
-                <div className={`w-3 h-3 rounded-full ${status !== 'Rejected' ? 'bg-grey-900' : 'bg-grey-300'}`} />
+              <div className={`flex items-center space-x-2 ${stats !== 'Rejected' ? 'text-grey-900' : 'text-grey-400'}`}>
+                <div className={`w-3 h-3 rounded-full ${stats !== 'Rejected' ? 'bg-grey-900' : 'bg-grey-300'}`} />
                 <span className="text-sm font-medium">Created</span>
               </div>
               <div className="flex-1 h-px bg-grey-300" />
-              <div className={`flex items-center space-x-2 ${status === 'Open' ? 'text-grey-900' : 'text-grey-400'}`}>
+              <div className={`flex items-center space-x-2 ${stats === 'Open' ? 'text-grey-900' : 'text-grey-400'}`}>
                 <Clock className="w-4 h-4" />
                 <span className="text-sm font-medium">Voting</span>
               </div>
               <div className="flex-1 h-px bg-grey-300" />
-              <div className={`flex items-center space-x-2 ${status === 'Funded' ? 'text-grey-900' : 'text-grey-400'}`}>
+              <div className={`flex items-center space-x-2 ${stats === 'Funded' ? 'text-grey-900' : 'text-grey-400'}`}>
                 <CheckCircle className="w-4 h-4" />
                 <span className="text-sm font-medium">Executed</span>
               </div>
@@ -266,7 +286,7 @@ const ProposalDetails: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ) : status === 'Open' ? (
+              ) : stats === 'Open' ? (
                 <div className="text-center p-6 bg-grey-50 rounded-lg">
                   <Target className="w-8 h-8 text-grey-400 mx-auto mb-2" />
                   <p className="text-grey-600 mb-2">
@@ -302,7 +322,9 @@ const ProposalDetails: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-grey-600">Requested:</span>
-                  <span className="font-medium text-grey-900">{formatAPT(proposal.requestedAmount)} APT</span>
+                  <span className="font-medium text-grey-900">
+                    {recipientLoading ? <LoadingSpinner size="sm" /> : formatAPT(requestedAmount)} APT
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-grey-600">Total Votes:</span>
