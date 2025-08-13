@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -9,7 +8,6 @@ import Dashboard from './pages/Dashboard';
 import ProposalsList from './pages/ProposalsList';
 import ProposalDetails from './pages/ProposalDetails';
 import CreateProposal from './pages/CreateProposal';
-import Staking from './pages/Staking';
 import Treasury from './pages/Treasury';
 
 // Create a client
@@ -36,7 +34,6 @@ function App() {
                 <Route path="/proposals" element={<ProposalsList />} />
                 <Route path="/proposals/:id" element={<ProposalDetails />} />
                 <Route path="/proposals/create" element={<CreateProposal />} />
-                <Route path="/stake" element={<Staking />} />
                 <Route path="/treasury" element={<Treasury />} />
               </Routes>
             </Layout>

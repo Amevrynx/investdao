@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {Home, LayoutDashboard, FileText, Coins, Vault, Wallet, LogOut, Menu, X } from 'lucide-react';
+import {Home, LayoutDashboard, FileText, Vault, Wallet, LogOut, Menu, X } from 'lucide-react';
 import { useWallet, WalletName } from '../contexts/WalletContext';
 import { formatAddress } from '../config/aptos';
 
@@ -17,7 +17,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Home', href: '/', icon: Home },
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Proposals', href: '/proposals', icon: FileText },
-    { name: 'Staking', href: '/stake', icon: Coins },
     { name: 'Treasury', href: '/treasury', icon: Vault },
   ];
 

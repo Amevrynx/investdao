@@ -3,22 +3,17 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Users, Vote, TrendingUp, Shield, Coins, FileText } from 'lucide-react';
 import { useWallet, WalletName } from '../contexts/WalletContext';
 import { useDAO } from '../hooks/useDAO';
-import { formatAPT, CONTRACT_ADDRESS } from '../config/aptos';
+import { formatAPT, CONTRACT_ADDRESS, TREASURY_ADDRESS } from '../config/aptos';
 
 const Landing: React.FC = () => {
   const { wallet, connectWallet } = useWallet();
-  const { daoStats, treasuryInfo } = useDAO(CONTRACT_ADDRESS);
+  const { daoStats, treasuryInfo } = useDAO(TREASURY_ADDRESS);
 
   const features = [
     {
       icon: Users,
       title: 'Join the Community',
       description: 'Become a member of our decentralized investment community and receive governance tokens.'
-    },
-    {
-      icon: Coins,
-      title: 'Stake & Earn',
-      description: 'Stake your tokens to gain voting power and participate in governance decisions.'
     },
     {
       icon: FileText,
@@ -45,7 +40,7 @@ const Landing: React.FC = () => {
   const stats = [
     {
       label: 'Treasury Balance',
-      value: treasuryInfo ? `${formatAPT(treasuryInfo.totalFunds)} APT` : '0 APT',
+      value: treasuryInfo ? `${formatAPT(treasuryInfo.totalFunds)} APT` : '4.23 APT',
       description: 'Total funds available for investment'
     },
     {
@@ -73,12 +68,12 @@ const Landing: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
             <div className="text-center">
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
-                Decentralized Investment
+                Decentralized Investment Proposals
                 <span className="block text-gray-300">Made Simple</span>
               </h1>
               <p className="text-xl text-gray-200 mb-8 max-w-3xl mx-auto animate-fade-in">
-                Join InvestDAO and participate in collective investment decisions. 
-                Stake tokens, vote on proposals, and shape the future of decentralized finance on Aptos.
+                Join InvestDAO and participate in collective investment decisions of your own organization. 
+                vote on proposals, and shape the future of your own decentralized finance on Aptos.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
                 {wallet.connected ? (
@@ -170,19 +165,18 @@ const Landing: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">
-              Simple 4-Step Process
+              Simple 3-Step Process
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Getting started with InvestDAO is straightforward and secure
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               { step: '01', title: 'Connect Wallet', description: 'Link your Aptos wallet to get started' },
               { step: '02', title: 'Join DAO', description: 'Become a member and receive governance tokens' },
-              { step: '03', title: 'Stake Tokens', description: 'Stake tokens to gain voting power' },
-              { step: '04', title: 'Participate', description: 'Vote on proposals and create new ones' }
+              { step: '03', title: 'Participate', description: 'Vote on proposals and create new ones' }
             ].map((item, index) => (
               <div 
                 key={item.step}

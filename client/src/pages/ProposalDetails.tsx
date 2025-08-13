@@ -287,7 +287,7 @@ const ProposalDetails: React.FC = () => {
                   </div>
                 </div>
               ) : stats === 'Open' ? (
-                <div className="text-center p-6 bg-grey-50 rounded-lg">
+                {/* <div className="text-center p-6 bg-grey-50 rounded-lg">
                   <Target className="w-8 h-8 text-grey-400 mx-auto mb-2" />
                   <p className="text-grey-600 mb-2">
                     {!wallet.connected ? 'Connect your wallet to vote' : 'You need staked tokens to vote'}
@@ -300,7 +300,7 @@ const ProposalDetails: React.FC = () => {
                       Stake tokens to gain voting power
                     </button>
                   )}
-                </div>
+                </div> */}
               ) : (
                 <div className="text-center p-6 bg-grey-50 rounded-lg">
                   <Clock className="w-8 h-8 text-grey-400 mx-auto mb-2" />

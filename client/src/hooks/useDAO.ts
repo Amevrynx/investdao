@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { aptos, CONTRACT_FUNCTIONS, CONTRACT_VIEWS } from '../config/aptos';
 import { useWallet } from '../contexts/WalletContext';
-import {Proposal, MemberTokens, TreasuryInfo, DAOStats,ProposalStatus, ProposalCategory,} from '../types/dao';
+import { Proposal, MemberTokens, TreasuryInfo, DAOStats, ProposalStatus, ProposalCategory } from '../types/dao';
 import toast from 'react-hot-toast';
 
 // Helper: for Move API always pass numbers as string!
@@ -13,7 +13,7 @@ export const useDAO = (daoTreasuryAddress: string) => {
   const { data: treasuryInfo, isLoading: treasuryLoading } = useQuery({
     queryKey: ['treasury', daoTreasuryAddress],
     queryFn: async (): Promise<TreasuryInfo | null> => {
-      if (!daoTreasuryAddress) throw new Error('DAO treasury address required');
+      if (!daoTreasuryAddress) return null;
       try {
         const result = await aptos.view({
           payload: {
@@ -32,15 +32,12 @@ export const useDAO = (daoTreasuryAddress: string) => {
           admin: response[5],
         };
       } catch (error: any) {
-        // Handle missing resource gracefully
         if (
           error?.response?.data?.error_code === 'invalid_input' &&
           error?.response?.data?.vm_error_code === 4008
         ) {
-          // Resource does not exist at this address
-          return null;
+          return null; // Resource does not exist at this address
         }
-        toast.error(error?.message || 'Failed to fetch treasury info');
         console.error(error?.response?.data || error);
         throw error;
       }
@@ -53,7 +50,7 @@ export const useDAO = (daoTreasuryAddress: string) => {
   const { data: memberTokens, isLoading: tokensLoading } = useQuery({
     queryKey: ['memberTokens', wallet.address],
     queryFn: async (): Promise<MemberTokens | null> => {
-      if (!wallet.address) throw new Error('No wallet connected');
+      if (!wallet.address) return null;
       try {
         const result = await aptos.view({
           payload: {
@@ -72,15 +69,12 @@ export const useDAO = (daoTreasuryAddress: string) => {
           reputationScore: Number(response[5]),
         };
       } catch (error: any) {
-        // Handle missing resource gracefully
         if (
           error?.response?.data?.error_code === 'invalid_input' &&
           error?.response?.data?.vm_error_code === 4008
         ) {
-          // Resource does not exist for this member
-          return null;
+          return null; // Resource does not exist for this member
         }
-        toast.error(error?.message || 'Failed to fetch member info');
         console.error(error?.response?.data || error);
         throw error;
       }
@@ -90,21 +84,20 @@ export const useDAO = (daoTreasuryAddress: string) => {
   });
 
   // ---- Fetch a proposal ----
-  const fetchProposal = async (proposalId: number): Promise<Proposal> => {
+  const fetchProposal = async (proposalId: number): Promise<Proposal | null> => {
     try {
       const result = await aptos.view({
         payload: {
           function: CONTRACT_VIEWS.GET_PROPOSAL_INFO,
-          functionArguments: [daoTreasuryAddress, proposalId.toString()], // proposalId must be string for Move
+          functionArguments: [daoTreasuryAddress, proposalId.toString()],
         },
       });
-      // (string, u8, u64, u64, u64, u8, u64, bool, address)
       const response = result as [string, number, string, string, string, number, string, boolean, string];
       return {
         id: proposalId,
         title: response[0],
         category: Number(response[1]) as ProposalCategory,
-        recipient: '', // Not available from view, you'd need to store/fetch separately if needed!
+        recipient: '', // Placeholder, as it's not in this view
         requestedAmount: Number(response[2]),
         yesVotes: Number(response[3]),
         noVotes: Number(response[4]),
@@ -114,21 +107,19 @@ export const useDAO = (daoTreasuryAddress: string) => {
         proposer: response[8],
       };
     } catch (error: any) {
-      // Handle missing proposal gracefully
       if (
         error?.response?.data?.error_code === 'invalid_input' &&
         error?.response?.data?.vm_error_code === 4008
       ) {
-        return null as any;
+        return null;
       }
-      toast.error(error?.message || `Failed to fetch proposal ${proposalId}`);
       console.error(error?.response?.data || error);
       throw error;
     }
   };
 
   // ---- View function: Get recipient details for a proposal ----
-  const getRecipientDetails = async (proposalId: number ): Promise<{ recipient: string; requestedAmount: number } | null> => {
+  const getRecipientDetails = async (proposalId: number): Promise<{ recipient: string; requestedAmount: number } | null> => {
     try {
       const result = await aptos.view({
         payload: {
@@ -136,20 +127,18 @@ export const useDAO = (daoTreasuryAddress: string) => {
           functionArguments: [daoTreasuryAddress, proposalId.toString()],
         },
       });
-      // result: [recipient, requested_amount]
+      const response = result as [string, string];
       return {
-        recipient: result[0] as string,
-        requestedAmount: Number(result[1]),
+        recipient: response[0],
+        requestedAmount: Number(response[1]),
       };
     } catch (error: any) {
-      // Handle missing resource gracefully
       if (
         error?.response?.data?.error_code === 'invalid_input' &&
         error?.response?.data?.vm_error_code === 4008
       ) {
         return null;
       }
-      toast.error(error?.message || 'Failed to fetch recipient details');
       console.error(error?.response?.data || error);
       return null;
     }
@@ -161,16 +150,12 @@ export const useDAO = (daoTreasuryAddress: string) => {
     queryFn: async (): Promise<Proposal[]> => {
       if (!treasuryInfo) return [];
       try {
-        // Loop: [0..n) for n = proposalCount
-        const proposalPromises = Array.from(
-          { length: treasuryInfo.proposalCount },
-          (_v, i) => fetchProposal(i)
+        const proposalPromises = Array.from({ length: treasuryInfo.proposalCount }, (_v, i) =>
+          fetchProposal(i)
         );
-        // Filter out nulls (missing proposals)
         const allProposals = await Promise.all(proposalPromises);
         return allProposals.filter(Boolean) as Proposal[];
       } catch (error: any) {
-        toast.error(error?.message || 'Failed to fetch proposals');
         console.error(error?.response?.data || error);
         return [];
       }
@@ -186,9 +171,30 @@ export const useDAO = (daoTreasuryAddress: string) => {
     treasuryBalance: treasuryInfo?.totalFunds || 0,
     activeProposals: proposals.filter(p => p.status === ProposalStatus.OPEN).length,
     totalStakedTokens: treasuryInfo?.stakedTokens || 0,
-    quorumRequired: Math.floor((treasuryInfo?.stakedTokens || 0) * 0.2), // 20% quorum
+    quorumRequired: Math.floor((treasuryInfo?.stakedTokens || 0) * 0.2), // 20% quorum based on your contract
     isPaused: treasuryInfo?.paused || false,
   };
+
+  // ----- init DAO ----
+  const initDAOMutation = useMutation({
+    mutationFn: async (daoSeed: string) => {
+      const payload = {
+        type: 'entry_function_payload',
+        function: CONTRACT_FUNCTIONS.INIT_DAO,
+        arguments: [daoSeed],
+      };
+      return signAndSubmitTransaction(payload);
+    },
+    onSuccess: () => {
+      toast.success('DAO initialized successfully!');
+      queryClient.invalidateQueries({ queryKey: ['treasury'] });
+      queryClient.invalidateQueries({ queryKey: ['memberTokens'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to initialize DAO');
+      console.error(error);
+    },
+  });
 
   // ---- Join DAO ----
   const joinDAOMutation = useMutation({
@@ -197,7 +203,9 @@ export const useDAO = (daoTreasuryAddress: string) => {
         type: 'entry_function_payload',
         function: CONTRACT_FUNCTIONS.JOIN_DAO,
         arguments: [],
+        typeArguments: [] // The Move function takes `account: &signer` implicitly
       };
+      
       return signAndSubmitTransaction(payload);
     },
     onSuccess: () => {
@@ -206,6 +214,46 @@ export const useDAO = (daoTreasuryAddress: string) => {
     },
     onError: (error) => {
       toast.error('Failed to join DAO');
+      console.error(error);
+    },
+  });
+
+  // ---- Transfer Tokens ----
+  const transferTokensMutation = useMutation({
+    mutationFn: async ({ recipient, amount }: { recipient: string; amount: number }) => {
+      const payload = {
+        type: 'entry_function_payload',
+        function: CONTRACT_FUNCTIONS.TRANSFER_TOKENS,
+        arguments: [recipient, amount.toString()],
+      };
+      return signAndSubmitTransaction(payload);
+    },
+    onSuccess: () => {
+      toast.success('Tokens transferred successfully!');
+      queryClient.invalidateQueries({ queryKey: ['memberTokens'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to transfer tokens');
+      console.error(error);
+    },
+  });
+
+  // ---- Distribute Tokens (Admin Only) ----
+  const distributeTokensMutation = useMutation({
+    mutationFn: async ({ recipient, amount, reason }: { recipient: string; amount: number; reason: string }) => {
+      const payload = {
+        type: 'entry_function_payload',
+        function: CONTRACT_FUNCTIONS.DISTRIBUTE_TOKENS,
+        arguments: [daoTreasuryAddress, recipient, amount.toString(), reason],
+      };
+      return signAndSubmitTransaction(payload);
+    },
+    onSuccess: () => {
+      toast.success('Tokens distributed successfully!');
+      queryClient.invalidateQueries({ queryKey: ['memberTokens'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to distribute tokens');
       console.error(error);
     },
   });
@@ -235,6 +283,7 @@ export const useDAO = (daoTreasuryAddress: string) => {
   const depositFundsMutation = useMutation({
     mutationFn: async (amount: number) => {
       const payload = {
+        type: 'entry_function_payload',
         function: CONTRACT_FUNCTIONS.DEPOSIT_FUNDS,
         arguments: [daoTreasuryAddress, amount.toString()],
       };
@@ -250,7 +299,7 @@ export const useDAO = (daoTreasuryAddress: string) => {
     },
   });
 
-  // ---- Create Proposal ----
+  // Create Proposal Mutation
   const createProposalMutation = useMutation({
     mutationFn: async ({
       title,
@@ -272,9 +321,9 @@ export const useDAO = (daoTreasuryAddress: string) => {
           daoTreasuryAddress,
           title,
           description,
-          category.toString(),
+          category,
           recipient,
-          requestedAmount.toString()
+          requestedAmount.toString(),
         ],
       };
       return signAndSubmitTransaction(payload);
@@ -331,6 +380,46 @@ export const useDAO = (daoTreasuryAddress: string) => {
     },
   });
 
+  // ---- Emergency Pause (Admin Only) ----
+  const emergencyPauseMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        type: 'entry_function_payload',
+        function: CONTRACT_FUNCTIONS.EMERGENCY_PAUSE,
+        arguments: [daoTreasuryAddress],
+      };
+      return signAndSubmitTransaction(payload);
+    },
+    onSuccess: () => {
+      toast.success('DAO paused successfully!');
+      queryClient.invalidateQueries({ queryKey: ['treasury'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to pause DAO');
+      console.error(error);
+    },
+  });
+
+  // ---- Emergency Unpause (Admin Only) ----
+  const emergencyUnpauseMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        type: 'entry_function_payload',
+        function: CONTRACT_FUNCTIONS.EMERGENCY_UNPAUSE,
+        arguments: [daoTreasuryAddress],
+      };
+      return signAndSubmitTransaction(payload);
+    },
+    onSuccess: () => {
+      toast.success('DAO unpaused successfully!');
+      queryClient.invalidateQueries({ queryKey: ['treasury'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to unpause DAO');
+      console.error(error);
+    },
+  });
+
   //expose all hooks
   return {
     treasuryInfo,
@@ -341,19 +430,29 @@ export const useDAO = (daoTreasuryAddress: string) => {
     tokensLoading,
     proposalsLoading,
 
+    initDAO: initDAOMutation.mutate,
     joinDAO: joinDAOMutation.mutate,
     stakeTokens: stakeTokensMutation.mutate,
     depositFunds: depositFundsMutation.mutate,
     createProposal: createProposalMutation.mutate,
     voteProposal: voteProposalMutation.mutate,
     executeProposal: executeProposalMutation.mutate,
+    transferTokens: transferTokensMutation.mutate,
+    distributeTokens: distributeTokensMutation.mutate,
+    emergencyPause: emergencyPauseMutation.mutate,
+    emergencyUnpause: emergencyUnpauseMutation.mutate,
 
+    isInitializing: initDAOMutation.isPending,
     isJoining: joinDAOMutation.isPending,
     isStaking: stakeTokensMutation.isPending,
     isDepositing: depositFundsMutation.isPending,
     isCreatingProposal: createProposalMutation.isPending,
     isVoting: voteProposalMutation.isPending,
     isExecuting: executeProposalMutation.isPending,
+    isTransferring: transferTokensMutation.isPending,
+    isDistributing: distributeTokensMutation.isPending,
+    isPausing: emergencyPauseMutation.isPending,
+    isUnpausing: emergencyUnpauseMutation.isPending,
 
     fetchProposal,
     getRecipientDetails,

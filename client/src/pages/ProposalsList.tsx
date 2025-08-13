@@ -11,14 +11,14 @@ import {
 } from 'lucide-react';
 import { useDAO } from '../hooks/useDAO';
 import { useWallet } from '../contexts/WalletContext';
-import { formatAPT } from '../config/aptos';
+import { CONTRACT_ADDRESS, formatAPT } from '../config/aptos';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StatusBadge from '../components/StatusBadge';
 import { ProposalStatus } from '../types/dao';
 
 const ProposalsList: React.FC = () => {
   const { wallet } = useWallet();
-  const { proposals, proposalsLoading } = useDAO();
+  const { proposals, proposalsLoading } = useDAO(CONTRACT_ADDRESS);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | ProposalStatus>('All');
 

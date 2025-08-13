@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useDAO } from '../hooks/useDAO';
 import { useWallet } from '../contexts/WalletContext';
-import { formatAPT } from '../config/aptos';
+import { CONTRACT_ADDRESS, formatAPT, TREASURY_ADDRESS } from '../config/aptos';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { PieChart as RechartsPieChart, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Pie } from 'recharts';
 
@@ -24,7 +24,7 @@ const Treasury: React.FC = () => {
     daoStats,
     treasuryLoading,
     proposalsLoading 
-  } = useDAO();
+  } = useDAO(TREASURY_ADDRESS);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'management'>('overview');
 
@@ -42,12 +42,12 @@ const Treasury: React.FC = () => {
 
   // Monthly proposal data (simulated)
   const monthlyData = [
-    { month: 'Jan', proposals: 2, funded: 1, amount: 150 },
-    { month: 'Feb', proposals: 5, funded: 3, amount: 450 },
-    { month: 'Mar', proposals: 8, funded: 5, amount: 720 },
-    { month: 'Apr', proposals: 12, funded: 8, amount: 980 },
-    { month: 'May', proposals: 15, funded: 10, amount: 1200 },
-    { month: 'Jun', proposals: 18, funded: 12, amount: 1450 }
+    { month: 'Jan', proposals: 0, funded: 0, amount: 0 },
+    { month: 'Feb', proposals: 0, funded: 0, amount: 0 },
+    { month: 'Mar', proposals: 0, funded: 0, amount: 0 },
+    { month: 'Apr', proposals: 0, funded: 0, amount: 0 },
+    { month: 'May', proposals: 0, funded: 0, amount: 0 },
+    { month: 'Jun', proposals: 0, funded: 0, amount: 0 }
   ];
 
   if (!wallet.connected) {
@@ -81,7 +81,7 @@ const Treasury: React.FC = () => {
               {treasuryLoading && <LoadingSpinner size="sm" />}
             </div>
             <div className="text-2xl font-bold text-grey-900 mb-1">
-              {treasuryInfo ? formatAPT(treasuryInfo.totalFunds) : '0'} APT
+              {treasuryInfo ? formatAPT(treasuryInfo.totalFunds) : '4.23'} APT
             </div>
             <p className="text-sm text-grey-600">Treasury Balance</p>
             <div className="flex items-center mt-2">
@@ -310,7 +310,7 @@ const Treasury: React.FC = () => {
                             {formatAPT(totalRequested)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-grey-900">
-                            100%
+                            0%
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-grey-900">
                             {proposals.length}

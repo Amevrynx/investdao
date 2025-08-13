@@ -1,16 +1,16 @@
 [package]
-name = "contract"
-version = "1.0.0"
-authors = []
+name = "investdao"
+version = "1.0.1"
+authors = ['Neil','Dhanesh']
 
 [addresses]
-dao_addr="0x8fe60c1ccd7eaa5c5e48556e99d02531fd7d528428ffedd523aafc2df8dd4abf"
+dao_addr="0x8cea1470410c540bab87c73bbfa1efaadd7557d0ba92d6a22cd7195ac8f72435"
 
 [dev-addresses]
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-framework.git"
-rev = "devnet"
+rev = "testnet"
 subdir = "aptos-framework"
 
 [dev-dependencies]

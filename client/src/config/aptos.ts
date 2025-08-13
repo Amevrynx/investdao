@@ -2,10 +2,10 @@ import { Aptos, AptosConfig, ClientConfig, Network } from "@aptos-labs/ts-sdk";
 
 export const CONTRACT_ADDRESS = (import.meta.env.VITE_CONTRACT_ADDRESS as string) || "";
 export const MODULE_NAME = (import.meta.env.VITE_MODULE_NAME as string) || "";
+export const TREASURY_ADDRESS = (import.meta.env.VITE_TREASURY_ADDRESS as string) || "";
 
 // Geomi API key and endpoint
 const GEOMI_API_KEY = import.meta.env.VITE_GEOMI_API_KEY as string;
-const GEOMI_DEVNET_URL = `https://fullnode.devnet.aptoslabs.com/v1`;
 
 const clientConfig: ClientConfig = {
   API_KEY: GEOMI_API_KEY
@@ -14,12 +14,12 @@ const clientConfig: ClientConfig = {
 export const NETWORK_CONFIG = {
   devnet: {
     name: 'Devnet',
-    url: GEOMI_DEVNET_URL,
+    url: 'https://fullnode.devnet.aptoslabs.com/v1',
     faucetUrl: 'https://fullnode.devnet.aptoslabs.com/v1',
     apiKey: GEOMI_API_KEY,
   },
   testnet: {
-    name: 'Testnet', 
+    name: 'Testnet',  
     url: 'https://fullnode.testnet.aptoslabs.com/v1',
     faucetUrl: 'https://faucet.testnet.aptoslabs.com',
     apiKey: null,
@@ -32,13 +32,10 @@ export const NETWORK_CONFIG = {
   },
 } as const;
 
-// Use Geomi for devnet, default for others
-const config = new AptosConfig({ 
-  network: Network.DEVNET, 
-  fullnode: NETWORK_CONFIG.devnet.url,
-  clientConfig
-});
-export const aptos = Object.freeze(new Aptos(config));
+export const aptos = new Aptos( new AptosConfig({
+  network : Network.TESTNET,
+  clientConfig: clientConfig,
+}))
 
 // Utility functions for amount conversion
 export const formatAPT = (octas: number): string => (octas / 100000000).toFixed(4);
@@ -51,28 +48,29 @@ export const formatNumber = (num: number): string => {
   return new Intl.NumberFormat().format(num);
 };
 
-// Contract function names - matching your Move contract
+// Contract function names 
 export const CONTRACT_FUNCTIONS = {
-  JOIN_DAO: `${CONTRACT_ADDRESS}::InvestDAO::join_dao`,
-  DEPOSIT_FUNDS: `${CONTRACT_ADDRESS}::InvestDAO::deposit_funds`,
-  STAKE_TOKENS: `${CONTRACT_ADDRESS}::InvestDAO::stake_tokens`,
-  TRANSFER_TOKENS: `${CONTRACT_ADDRESS}::InvestDAO::transfer_tokens`,
-  CREATE_PROPOSAL: `${CONTRACT_ADDRESS}::InvestDAO::create_investment_proposal`,
-  VOTE_PROPOSAL: `${CONTRACT_ADDRESS}::InvestDAO::vote_on_proposal`,
-  EXECUTE_PROPOSAL: `${CONTRACT_ADDRESS}::InvestDAO::execute_proposal`,
-  DISTRIBUTE_TOKENS: `${CONTRACT_ADDRESS}::InvestDAO::distribute_tokens`,
-  EMERGENCY_PAUSE: `${CONTRACT_ADDRESS}::InvestDAO::emergency_pause`,
-  EMERGENCY_UNPAUSE: `${CONTRACT_ADDRESS}::InvestDAO::emergency_unpause`,
+  INIT_DAO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::initialize_dao`,
+  JOIN_DAO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::join_dao`,
+  DEPOSIT_FUNDS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::deposit_funds`,
+  STAKE_TOKENS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::stake_tokens`,
+  TRANSFER_TOKENS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::transfer_tokens`,
+  CREATE_PROPOSAL: `${CONTRACT_ADDRESS}::${MODULE_NAME}::create_investment_proposal`,
+  VOTE_PROPOSAL: `${CONTRACT_ADDRESS}::${MODULE_NAME}::vote_on_proposal`,
+  EXECUTE_PROPOSAL: `${CONTRACT_ADDRESS}::${MODULE_NAME}::execute_proposal`,
+  DISTRIBUTE_TOKENS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::distribute_tokens`,
+  EMERGENCY_PAUSE: `${CONTRACT_ADDRESS}::${MODULE_NAME}::emergency_pause`,
+  EMERGENCY_UNPAUSE: `${CONTRACT_ADDRESS}::${MODULE_NAME}::emergency_unpause`,
 } as const;
 
-// Contract view function names - matching your Move contract
+// Contract view function names
 export const CONTRACT_VIEWS = {
-  GET_PROPOSAL_INFO: `${CONTRACT_ADDRESS}::InvestDAO::get_proposal_info`,
-  GET_MEMBER_INFO: `${CONTRACT_ADDRESS}::InvestDAO::get_member_info`,
-  GET_TREASURY_INFO: `${CONTRACT_ADDRESS}::InvestDAO::get_treasury_info`,
-  GET_VOTING_POWER: `${CONTRACT_ADDRESS}::InvestDAO::get_voting_power`,
-  CALCULATE_QUORUM: `${CONTRACT_ADDRESS}::InvestDAO::calculate_quorum`,
-  GET_RECIPIENT_DETAILS: `${CONTRACT_ADDRESS}::InvestDAO::get_recipient_details`,
+  GET_PROPOSAL_INFO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_proposal_info`,
+  GET_MEMBER_INFO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_member_info`,
+  GET_TREASURY_INFO: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_treasury_info`,
+  GET_VOTING_POWER: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_voting_power`,
+  CALCULATE_QUORUM: `${CONTRACT_ADDRESS}::${MODULE_NAME}::calculate_quorum`,
+  GET_RECIPIENT_DETAILS: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_recipient_details`,
 } as const;
 
 // Helper function to get account resources

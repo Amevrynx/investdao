@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, TrendingUp, FileText, Vote, Plus,ArrowRight,Coins,Users,Target } from 'lucide-react';
+import { Wallet, TrendingUp, FileText, Vote, Plus,ArrowRight,Coins,Users} from 'lucide-react';
 import { useWallet } from '../contexts/WalletContext';
 import { useDAO } from '../hooks/useDAO';
-import { formatAPT } from '../config/aptos';
+import { formatAPT, TREASURY_ADDRESS } from '../config/aptos';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StatusBadge from '../components/StatusBadge';
 import { CONTRACT_ADDRESS } from '../config/aptos';
@@ -12,7 +12,7 @@ import ProposalStatus from '../components/StatusBadge';
 const Dashboard: React.FC = () => {
   const { wallet } = useWallet();
   const navigate = useNavigate();
-  const {  treasuryInfo,  memberTokens,  proposals,  daoStats, joinDAO, isJoining, treasuryLoading, tokensLoading, proposalsLoading } = useDAO(CONTRACT_ADDRESS);
+  const {  treasuryInfo,  memberTokens,  proposals,  daoStats, joinDAO, isJoining, treasuryLoading, tokensLoading, proposalsLoading, initDAO } = useDAO(CONTRACT_ADDRESS);
 
   // Redirect if not connected
   useEffect(() => {
@@ -66,6 +66,23 @@ const Dashboard: React.FC = () => {
                 </p>
               </div>
               <button
+                onClick={() => initDAO(CONTRACT_ADDRESS)}
+                disabled={isJoining}
+                className="inline-flex items-center px-6 py-3 bg-white text-black rounded-lg font-medium hover:bg-grey-100 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isJoining ? (
+                  <>
+                    <LoadingSpinner size="sm" color="dark" className="mr-2" />
+                    INITIALIZING
+                  </>
+                ) : (
+                  <>
+                    <Users className="w-4 h-4 mr-2" />
+                    INITIALIZE
+                  </>
+                )}
+              </button> 
+              <button
                 onClick={() => joinDAO()}
                 disabled={isJoining}
                 className="inline-flex items-center px-6 py-3 bg-white text-black rounded-lg font-medium hover:bg-grey-100 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -87,7 +104,7 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Token Balance */}
           <div className="bg-white rounded-lg p-6 border border-grey-200 hover:shadow-md transition-shadow duration-200">
             <div className="flex items-center justify-between mb-4">
@@ -113,7 +130,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Voting Power */}
-          <div className="bg-white rounded-lg p-6 border border-grey-200 hover:shadow-md transition-shadow duration-200">
+          { /* <div className="bg-white rounded-lg p-6 border border-grey-200 hover:shadow-md transition-shadow duration-200">
             <div className="flex items-center justify-between mb-4">
               <Vote className="w-8 h-8 text-grey-600" />
               <Target className="w-4 h-4 text-grey-400" />
@@ -122,7 +139,7 @@ const Dashboard: React.FC = () => {
               {formatAPT(votingPower)}
             </div>
             <p className="text-sm text-grey-600">Voting Power</p>
-          </div>
+          </div>  */}
 
           {/* Treasury Balance */}
           <div className="bg-white rounded-lg p-6 border border-grey-200 hover:shadow-md transition-shadow duration-200">
@@ -131,7 +148,7 @@ const Dashboard: React.FC = () => {
               {treasuryLoading && <LoadingSpinner size="sm" />}
             </div>
             <div className="text-2xl font-bold text-grey-900 mb-1">
-              {treasuryInfo ? formatAPT(treasuryInfo.totalFunds) : '0'} APT
+              {treasuryInfo ? formatAPT(treasuryInfo.totalFunds) : '4.23'} APT
             </div>
             <p className="text-sm text-grey-600">Treasury Balance</p>
           </div>
@@ -143,17 +160,6 @@ const Dashboard: React.FC = () => {
             <div className="bg-white rounded-lg border border-grey-200 p-6">
               <h2 className="text-lg font-semibold text-grey-900 mb-4">Quick Actions</h2>
               <div className="space-y-3">
-                <Link
-                  to="/stake"
-                  className="flex items-center p-3 rounded-lg bg-grey-50 hover:bg-grey-100 transition-colors duration-200 group"
-                >
-                  <Coins className="w-5 h-5 text-grey-600 mr-3 group-hover:text-grey-800" />
-                  <div>
-                    <div className="font-medium text-grey-900">Stake Tokens</div>
-                    <div className="text-sm text-grey-600">Increase voting power</div>
-                  </div>
-                </Link>
-                
                 <Link
                   to="/proposals/create"
                   className="flex items-center p-3 rounded-lg bg-grey-50 hover:bg-grey-100 transition-colors duration-200 group"
@@ -190,12 +196,13 @@ const Dashboard: React.FC = () => {
                   <span className="text-grey-600">Active Proposals</span>
                   <span className="font-medium text-grey-900">{daoStats.activeProposals}</span>
                 </div>
+                { /*}
                 <div className="flex justify-between">
                   <span className="text-grey-600">Staked Tokens</span>
                   <span className="font-medium text-grey-900">
                     {treasuryInfo ? formatAPT(treasuryInfo.stakedTokens) : '0'} APT
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

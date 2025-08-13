@@ -1,4 +1,4 @@
-module dao_addr::InvestDAO{
+module dao_addr::investdaov2{
     use std::signer;
     use std::table;
     use std::string;
@@ -90,7 +90,7 @@ module dao_addr::InvestDAO{
         paused: bool,
     }
 
-    // Governance Token (simplified representation)
+    // Governance Token
     struct GovernanceToken has key, store {
         balance: u64,
         staked_balance: u64,
@@ -550,6 +550,7 @@ module dao_addr::InvestDAO{
             treasury.paused,
             treasury.admin
         )
+        
     }
 
     #[view]
