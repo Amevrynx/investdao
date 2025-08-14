@@ -39,7 +39,6 @@ Our vision is to create a transparent, inclusive, and efficient investment ecosy
 
 ### 🎯 **Governance Token Economics**
 - **Native Governance Tokens**: Custom token system for voting rights
-- **Staking Mechanism**: Stake tokens to gain voting power and prevent spam
 - **Weighted Voting Power**: Voting influence proportional to staked tokens
 - **Token Transfer System**: Peer-to-peer token transfers between members
 - **Economic Incentives**: Reward active participation and long-term commitment
@@ -48,7 +47,6 @@ Our vision is to create a transparent, inclusive, and efficient investment ecosy
 - **Flexible Membership**: Open joining with role-based permissions
 - **Member Statistics Tracking**: Comprehensive activity and contribution metrics
 - **Reputation System**: Track proposal success rates and voting history
-- **Access Tiers**: Different permission levels based on token holdings
 - **Anti-Spam Protection**: Minimum token requirements for proposal creation
 
 ### ⚡ **Smart Contract Security**
@@ -77,7 +75,7 @@ Our vision is to create a transparent, inclusive, and efficient investment ecosy
 ### **Smart Contract Structure**
 ```
 contract/
-├── InvestDAO.move     # Core DAO functionality
+├── investdaov2.move     # Core DAO functionality
 └── tests/                       # Comprehensive test suite
 ```
 
