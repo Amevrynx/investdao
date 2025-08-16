@@ -211,7 +211,3 @@ We welcome contributions from the community! Here's how you can help:
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-*Empowering communities to make better investment decisions together*
-
-[def]: 0x7a1eee0834dd5465a1caeec5e12c4a37a4a957832891b39e49ada62fc751bb10
